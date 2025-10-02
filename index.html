@@ -1,12 +1,294 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello, world!</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RicciFlowRec AI交易系统 - 几何流量化分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <p>This is your new GitHub Pages site.</p>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="title-section">
+                    <h1>🔬 RicciFlowRec AI交易系统</h1>
+                    <p class="subtitle">基于几何流技术的智能股票分析平台</p>
+                </div>
+                <div class="status-section">
+                    <div class="api-status">
+                        <span id="api-status-indicator" class="status status--loading">API连接中...</span>
+                    </div>
+                    <div class="last-update">
+                        <span id="last-update-time">最后更新: --:--</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Left Panel - Controls -->
+            <aside class="left-panel">
+                <!-- Stock Input Section -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>📈 股票分析</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="form-group">
+                            <label for="ticker-input" class="form-label">股票代码 (北美市场)</label>
+                            <div class="input-group">
+                                <input type="text" id="ticker-input" class="form-control" 
+                                       placeholder="输入代码如 AAPL" value="">
+                                <button id="add-ticker-btn" class="btn btn--secondary btn--icon">
+                                    <span class="icon">+</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="preset-tickers">
+                            <label class="form-label">热门股票</label>
+                            <div class="ticker-buttons">
+                                <button class="ticker-btn" data-ticker="AAPL">AAPL</button>
+                                <button class="ticker-btn" data-ticker="GOOGL">GOOGL</button>
+                                <button class="ticker-btn" data-ticker="MSFT">MSFT</button>
+                                <button class="ticker-btn" data-ticker="AMZN">AMZN</button>
+                                <button class="ticker-btn" data-ticker="TSLA">TSLA</button>
+                                <button class="ticker-btn" data-ticker="NVDA">NVDA</button>
+                            </div>
+                        </div>
+
+                        <div class="selected-tickers">
+                            <label class="form-label">已选股票</label>
+                            <div id="selected-tickers-list" class="ticker-list">
+                                <!-- Selected tickers will appear here -->
+                            </div>
+                        </div>
+
+                        <button id="analyze-btn" class="btn btn--primary btn--full-width">
+                            🚀 开始RicciFlow分析
+                        </button>
+
+                        <div class="loading-indicator hidden" id="loading-indicator">
+                            <div class="spinner"></div>
+                            <span>正在获取真实数据并计算Ricci曲率...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RicciFlow Parameters -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>⚙️ RicciFlow参数</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="form-group">
+                            <label for="alpha-slider" class="form-label">
+                                收益权重 α: <span id="alpha-value">0.7</span>
+                            </label>
+                            <input type="range" id="alpha-slider" class="slider" 
+                                   min="0.1" max="1" step="0.1" value="0.7">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="lambda-slider" class="form-label">
+                                风险权重 λ: <span id="lambda-value">0.3</span>
+                            </label>
+                            <input type="range" id="lambda-slider" class="slider" 
+                                   min="0.1" max="1" step="0.1" value="0.3">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="threshold-slider" class="form-label">
+                                曲率阈值: <span id="threshold-value">-0.1</span>
+                            </label>
+                            <input type="range" id="threshold-slider" class="slider" 
+                                   min="-0.5" max="0" step="0.05" value="-0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="correlation-threshold" class="form-label">
+                                相关性阈值: <span id="correlation-value">0.2</span>
+                            </label>
+                            <input type="range" id="correlation-threshold" class="slider" 
+                                   min="0.1" max="0.8" step="0.1" value="0.2">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="auto-update" checked>
+                                <span class="checkmark"></span>
+                                自动更新数据 (30s)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Statistics -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>📊 网络统计</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">节点数</span>
+                                <span class="stat-value" id="nodes-count">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">边数</span>
+                                <span class="stat-value" id="edges-count">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">网络密度</span>
+                                <span class="stat-value" id="density-value">0.000</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">不稳定节点</span>
+                                <span class="stat-value" id="unstable-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Panel - Visualizations -->
+            <div class="center-panel">
+                <!-- Network Graph -->
+                <div class="card chart-card">
+                    <div class="card__header">
+                        <h3>🕸️ 金融网络图</h3>
+                        <div class="chart-controls">
+                            <button id="reset-zoom" class="btn btn--small">重置视图</button>
+                        </div>
+                    </div>
+                    <div class="card__body">
+                        <div id="network-graph" class="chart-container">
+                            <div class="empty-state">
+                                <p>请选择股票开始分析</p>
+                            </div>
+                        </div>
+                        <div class="graph-legend">
+                            <div class="legend-item">
+                                <div class="legend-color positive"></div>
+                                <span>正曲率 (稳定)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color negative"></div>
+                                <span>负曲率 (不稳定)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color unstable-node"></div>
+                                <span>不稳定节点</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ricci Flow Evolution -->
+                <div class="card chart-card">
+                    <div class="card__header">
+                        <h3>🌊 Ricci流演化</h3>
+                        <div class="chart-controls">
+                            <button id="play-evolution" class="btn btn--small">▶️ 播放</button>
+                            <button id="pause-evolution" class="btn btn--small">⏸️ 暂停</button>
+                        </div>
+                    </div>
+                    <div class="card__body">
+                        <div id="ricci-flow-chart" class="chart-container">
+                            <canvas id="flow-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk-Return Scatter -->
+                <div class="card chart-card">
+                    <div class="card__header">
+                        <h3>📊 收益风险分布</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="risk-return-chart" class="chart-container">
+                            <canvas id="scatter-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Recommendations -->
+            <aside class="right-panel">
+                <!-- Real-time Prices -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>💹 实时行情</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="stock-prices" class="price-list">
+                            <div class="empty-state">
+                                <p>等待股票数据...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment Recommendations -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>🎯 投资建议</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="recommendations" class="recommendations-list">
+                            <div class="empty-state">
+                                <p>请完成分析获取推荐</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Alerts -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>⚠️ 风险预警</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="risk-alerts" class="alerts-list">
+                            <div class="empty-state">
+                                <p>暂无风险警报</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Curvature Details -->
+                <div class="card">
+                    <div class="card__header">
+                        <h3>📐 Ricci曲率详情</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="curvature-details" class="curvature-list">
+                            <div class="empty-state">
+                                <p>等待曲率计算...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <p>&copy; 2025 RicciFlowRec AI交易系统 | 基于几何流技术 | 数据来源: Tiingo API</p>
+                <div class="footer-links">
+                    <span>🔬 Ollivier-Ricci曲率</span>
+                    <span>🌊 Ricci流模拟</span>
+                    <span>📊 风险传播分析</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
